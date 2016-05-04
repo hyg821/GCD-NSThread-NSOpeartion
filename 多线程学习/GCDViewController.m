@@ -44,30 +44,118 @@
     NSLog(@"%@",create_group_queue);
     
     
+    //[self ax];
+    //[self ay];
+    //[self bx];
+    //[self by];
     
-    
-    //创建一个同步任务
-    dispatch_sync(global_queue, ^{
-        
-        //创建一个异步任务
-        dispatch_async(global_queue, ^{
-            [NSThread sleepForTimeInterval:2];
-            [self doSomthing];
-        });
-        
-        //创建一个异步任务
-        dispatch_async(global_queue, ^{
-            [self dotamax];
-        });
-        
-        //创建一个异步主线程 回调
-        dispatch_async(main_queue, ^{
-            [self returnMainQueue];
-        });
-        
+}
+
+//串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行
+-(void)ax{
+    //串行队列
+    dispatch_queue_t ax_queue=dispatch_queue_create("ax", DISPATCH_QUEUE_SERIAL);
+    //同步任务
+    dispatch_sync(ax_queue, ^{
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"1");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
     });
     
+    //同步任务
+    dispatch_sync(ax_queue, ^{
+        [NSThread sleepForTimeInterval:2];
+        NSLog(@"2");
+    });
     
+    //同步任务
+    dispatch_sync(ax_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"3");
+    });
+}
+
+//串行异步 一个一个执行 异步任务 下一个任务依赖于上一个任务执行完成 会新开一个线程来执行任务
+-(void)ay{
+    //串行队列
+    dispatch_queue_t ax_queue=dispatch_queue_create("ay", DISPATCH_QUEUE_SERIAL);
+    //异步任务
+    dispatch_async(ax_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"1");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
+    });
+    
+    //异步任务
+    dispatch_async(ax_queue, ^{
+        [NSThread sleepForTimeInterval:2];
+        NSLog(@"2");
+    });
+    
+    //异步任务
+    dispatch_async(ax_queue, ^{
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"3");
+    });
+}
+
+//并行同步 串行执行 不会新开线程 任务回一个一个执行完成 在主线程
+-(void)bx{
+    //并行队列
+    dispatch_queue_t bx_queue=dispatch_queue_create("bx", DISPATCH_QUEUE_CONCURRENT);
+    //同步任务
+    dispatch_sync(bx_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"1");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
+
+    });
+    
+    //同步任务
+    dispatch_sync(bx_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"2");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
+    });
+    
+    //同步任务
+    dispatch_sync(bx_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"3");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
+    });
+}
+
+//并行异步 并行开若干个线程 来执行不同的任务 最常用
+-(void)by{
+    //并行队列
+    dispatch_queue_t by_queue=dispatch_queue_create("by", DISPATCH_QUEUE_CONCURRENT);
+    //异步任务
+    dispatch_async(by_queue, ^{
+        [NSThread sleepForTimeInterval:3];
+        NSLog(@"1");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
+    });
+    
+    //异步任务
+    dispatch_async(by_queue, ^{
+        [NSThread sleepForTimeInterval:2];
+        NSLog(@"2");
+        NSLog(@"%@",[NSThread currentThread]);
+    });
+    
+    //异步任务
+    dispatch_async(by_queue, ^{
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"3");
+        NSLog(@"%@",[NSThread currentThread]);
+    });
 }
 
 -(void)doSomthing{
