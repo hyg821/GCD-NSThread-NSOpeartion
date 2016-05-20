@@ -20,6 +20,24 @@
     self.title=@"GCDViewController";
     self.totalCount=10;
     
+    
+//队列 的 串行并行 是对于我的任务而言的
+    //队列只是一种 执行顺序 并不会新开线程
+    //只有异步任务 才会开一个新的线程
+    //串行的本质 就是  执行 下一个任务 总是依赖与 上一个 任务是否开始执行
+    //并行的本质 就是  执行 下一个任务 并不依赖于 上一个 任务
+    
+    
+    //dispatch_sync(ax_queue, ^{
+    //});
+    
+    
+    //同步的本质 就是  执行 任务是否是 dispatch_sync +block里的代码一起执行完 不开线程执行block里的代码
+    //异步的本质 就是  执行 任务是否是 dispatch_async +block里的代码不是一起执行完 新开一个线程来执行block里的代码
+    
+    
+    //本质就是   队列(queue) --> 任务dispatch_sync//dispatch_sync
+    
     //a->串行队列  x->同步任务
     //b->并行队列  y->异步任务
     
@@ -46,7 +64,7 @@
     
     //[self ax];
     //[self ay];
-    //[self bx];
+    [self bx];
     //[self by];
     
     //单例创建方法
@@ -55,10 +73,13 @@
     //});
     
     //线程同步
-    [self threadSynchronization];
+    //[self threadSynchronization];
+    
+    //线程死锁
+    //[self threadDeadlock];
 }
 
-//串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行
+//串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行 所以会卡线程
 -(void)ax{
     //串行队列
     dispatch_queue_t ax_queue=dispatch_queue_create("ax", DISPATCH_QUEUE_SERIAL);
@@ -99,16 +120,20 @@
     dispatch_async(ax_queue, ^{
         [NSThread sleepForTimeInterval:2];
         NSLog(@"2");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
     });
     
     //异步任务
     dispatch_async(ax_queue, ^{
         [NSThread sleepForTimeInterval:1];
         NSLog(@"3");
+        NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
     });
 }
 
-//并行同步 串行执行 不会新开线程 任务回一个一个执行完成 在主线程
+//并行同步 本来应该是 并行执行任务的 但是 因为执行的是同步任务 dispatch_sync+block里的代码是一起执行的 所以才会 一个任务执行完成之后 下一个任务才开始执行 因为是同步任务 所以不会开新线程 所以 在主线程
 -(void)bx{
     //并行队列
     dispatch_queue_t bx_queue=dispatch_queue_create("bx", DISPATCH_QUEUE_CONCURRENT);
@@ -123,7 +148,7 @@
     
     //同步任务
     dispatch_sync(bx_queue, ^{
-        [NSThread sleepForTimeInterval:3];
+        [NSThread sleepForTimeInterval:2];
         NSLog(@"2");
         NSLog(@"%@",[NSThread currentThread]);
         NSLog(@"%@",[NSThread mainThread]);
@@ -131,14 +156,14 @@
     
     //同步任务
     dispatch_sync(bx_queue, ^{
-        [NSThread sleepForTimeInterval:3];
+        [NSThread sleepForTimeInterval:1];
         NSLog(@"3");
         NSLog(@"%@",[NSThread currentThread]);
         NSLog(@"%@",[NSThread mainThread]);
     });
 }
 
-//并行异步 并行开若干个线程 来执行不同的任务 最常用
+//并行异步 并行执行dispatch_async 开若干个线程 来执行不同的任务 最常用
 -(void)by{
     //并行队列
     dispatch_queue_t by_queue=dispatch_queue_create("by", DISPATCH_QUEUE_CONCURRENT);
@@ -155,6 +180,7 @@
         [NSThread sleepForTimeInterval:2];
         NSLog(@"2");
         NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
     });
     
     //异步任务
@@ -162,6 +188,7 @@
         [NSThread sleepForTimeInterval:1];
         NSLog(@"3");
         NSLog(@"%@",[NSThread currentThread]);
+        NSLog(@"%@",[NSThread mainThread]);
     });
 }
 
@@ -198,6 +225,27 @@
     }
     dispatch_group_notify(group, dispatch_get_main_queue(), ^{
         NSLog(@"全都完成了");
+    });
+}
+
+-(void)threadDeadlock{
+    //为什么会发生死锁
+    //首先队列是串行队列 在一个并发任务里 执行一个同步任务  串行队列是一个任务一个任务的执行 所以 同步任务需要等待异步任务执行完成 但是同步任务又是在异步任务里边 所以 异步执行同步 同步又依赖异步  所以形成死锁
+    
+    
+    //串行队列
+    dispatch_queue_t myQueue = dispatch_queue_create("myQueue", DISPATCH_QUEUE_SERIAL);
+    //并行任务
+    dispatch_async(myQueue, ^{
+        NSLog(@"1----");
+        /**
+         *  线程死锁
+         */
+        //串行任务
+        dispatch_sync(myQueue, ^{
+            NSLog(@"-%@",[[NSThread currentThread] isMainThread]?@"--主线程":@"分线程");
+        });
+        NSLog(@"2------");
     });
 }
 
