@@ -21,7 +21,7 @@
     self.totalCount=10;
     
     
-//队列 的 串行并行 是对于我的任务而言的
+    //队列 的 串行并行 是对于我的任务而言的
     //队列只是一种 执行顺序 并不会新开线程
     //只有异步任务 才会开一个新的线程
     //串行的本质 就是  执行 下一个任务 总是依赖与 上一个 任务是否开始执行
@@ -50,7 +50,22 @@
     //拿到全局队列 通过下边的参数来决定队列是串行 还是并行
     //DISPATCH_QUEUE_SERIAL 串行
     //DISPATCH_QUEUE_CONCURRENT 并行
-    dispatch_queue_t global_queue=dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0);
+    
+    //队列优先级
+    //QOS_CLASS_USER_INTERACTIVE
+    //QOS_CLASS_USER_INITIATED
+    //QOS_CLASS_DEFAULT
+    //QOS_CLASS_UTILITY
+    //QOS_CLASS_BACKGROUND
+    //QOS_CLASS_UNSPECIFIED
+    
+    //队列优先级
+    //DISPATCH_QUEUE_PRIORITY_HIGH
+    //DISPATCH_QUEUE_PRIORITY_DEFAULT
+    //DISPATCH_QUEUE_PRIORITY_LOW
+    //DISPATCH_QUEUE_PRIORITY_BACKGROUND
+    
+    dispatch_queue_t global_queue=dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE,0);
     NSLog(@"%@",global_queue);
     
     //创建一个并发队列
@@ -64,7 +79,7 @@
     
     //[self ax];
     //[self ay];
-    [self bx];
+    //[self bx];
     //[self by];
     
     //单例创建方法
@@ -77,6 +92,9 @@
     
     //线程死锁
     //[self threadDeadlock];
+    
+    //例子一
+    [self exampleOne];
 }
 
 //串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行 所以会卡线程
@@ -248,5 +266,35 @@
         NSLog(@"2------");
     });
 }
+
+-(void)exampleOne{
+    //queue1 是串行队列 queue2是并行
+    //开了三个异步任务 queue1 是串行 所以会执行完block1 才执行block2
+    //queue2 是并行队列 再加上异步任务 所以他会和block1 并行执行
+    //所以出现了 + - 交互出现 最后出现=
+    
+    
+    dispatch_queue_t queue1=dispatch_queue_create("queue1", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t queue2=dispatch_queue_create("queue2", DISPATCH_QUEUE_CONCURRENT);
+    
+    dispatch_async(queue1, ^{    // block1
+        for (int i = 0; i < 5; i ++) {
+            NSLog(@"+++++");
+        }
+    });
+    
+    dispatch_async(queue1, ^{ // block2
+        for (int i = 0; i < 5; i ++) {
+            NSLog(@"=====");
+        }
+    });
+    
+    dispatch_async(queue2, ^{    // block3
+        for (int i = 0; i < 5; i ++) {
+            NSLog(@"----");
+        }
+    });
+}
+
 
 @end
