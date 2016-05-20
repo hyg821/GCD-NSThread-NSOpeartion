@@ -49,6 +49,13 @@
     //[self bx];
     //[self by];
     
+    //单例创建方法
+    //static dispatch_once_t onceToken;
+    //dispatch_once(&onceToken, ^{
+    //});
+    
+    //线程同步
+    [self threadSynchronization];
 }
 
 //串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行
@@ -172,6 +179,26 @@
 
 -(void)dealloc{
     NSLog(@"2");
+}
+
+-(void)threadSynchronization{
+    dispatch_group_t group=dispatch_group_create();
+    dispatch_queue_t backgroundQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    for (int i=1; i<7; i++) {
+        dispatch_group_async(group, backgroundQueue, ^{
+            int a=1;
+            for (int j=0; j<800; j++) {
+                a+=i;
+                if (a>800) {
+                    NSLog(@"我是线程%d 我完成了",i);
+                    return ;
+                }
+            }
+        });
+    }
+    dispatch_group_notify(group, dispatch_get_main_queue(), ^{
+        NSLog(@"全都完成了");
+    });
 }
 
 @end
