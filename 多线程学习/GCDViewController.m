@@ -392,7 +392,7 @@ void fun1(){
         NSLog(@"dispatch_async2");
     });
     
-    //dispatch_barrier_async是一种同步操作，在其前面的任务执行结束后它才执行，而且其后面的任务等它执行完成之后才会执行。 也就是说 它的执行 一定是 前边的任务执行完了 他才执行  他后边的任务 一定等他执行完了 才执行
+    //dispatch_barrier_async是一种同步操作，在其前面的任务执行结束后它才执行，而且其后面的任务等它执行完成之后才会执行。 也就是说 它的执行 一定是 前边的任务执行完了 他才执行  他后边的任务 一定等他执行完了 才执行  多个异步之间 放入一个 同步任务
     dispatch_barrier_async(queue, ^{
         NSLog(@"dispatch_barrier_async");
         [NSThread sleepForTimeInterval:8];
