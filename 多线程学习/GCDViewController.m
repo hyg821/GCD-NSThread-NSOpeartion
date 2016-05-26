@@ -97,7 +97,16 @@
     //[self exampleOne];
     
     //通过信号量 来决定 能有几个异步任务 同时执行
-    [self exampleTwo];
+    //[self exampleTwo];
+    
+    //线程延时
+    [self exampleThree];
+    
+    //dispatch_barrier_async 异步中的同步
+    //[self exampleFour];
+    
+    //代替for操作
+    //[self exampleFive];
 }
 
 //串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行 所以会卡线程
@@ -244,6 +253,7 @@
             }
         });
     }
+    //等group的任务都完成了 才会执行下方block的任务
     dispatch_group_notify(group, dispatch_get_main_queue(), ^{
         NSLog(@"全都完成了");
     });
@@ -332,6 +342,73 @@
         [NSThread sleepForTimeInterval:1];
         NSLog(@"未知二号 行动结束");
         dispatch_semaphore_signal(semaphore);
+    });
+}
+
+-(void)exampleThree{
+    //1.第一种用法
+    /* NSEC_PER_SEC 秒
+     * NSEC_PER_MSEC 毫秒
+     * NSEC_PER_USEC 微秒
+     */
+    dispatch_time_t time=dispatch_time(DISPATCH_TIME_NOW, 3ull *NSEC_PER_SEC);
+    
+    dispatch_after(time, dispatch_get_main_queue(), ^{
+        //执行操作
+        NSLog(@"after 3s");
+    });
+    
+    //2.第二种用法
+    //<#dispatch_function_t work#> --执行的c语言方法
+    dispatch_after_f(dispatch_time(DISPATCH_TIME_NOW, 3ull *NSEC_PER_SEC), dispatch_get_main_queue(), NULL, fun1);
+    
+    
+    //3.第三种用法
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5ull * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        NSLog(@"after 5s");
+    });
+    
+    
+    //1.不是一定时间后执行相应的任务，而是一定时间后，将执行的操作加入到队列中（队列里面再分配执行的时间）
+    //2.主线程 RunLoop 1/60秒检测时间，追加的时间范围 3s~(3+1/60)s
+    
+    
+}
+
+void fun1(){
+    NSLog(@"after 3s");
+}
+
+
+-(void)exampleFour{
+    dispatch_queue_t queue = dispatch_queue_create("gcdtest", DISPATCH_QUEUE_CONCURRENT);
+    
+    dispatch_async(queue, ^{
+        [NSThread sleepForTimeInterval:2];
+        NSLog(@"dispatch_async1");
+    });
+    dispatch_async(queue, ^{
+        [NSThread sleepForTimeInterval:4];
+        NSLog(@"dispatch_async2");
+    });
+    
+    //dispatch_barrier_async是一种同步操作，在其前面的任务执行结束后它才执行，而且其后面的任务等它执行完成之后才会执行。 也就是说 它的执行 一定是 前边的任务执行完了 他才执行  他后边的任务 一定等他执行完了 才执行
+    dispatch_barrier_async(queue, ^{
+        NSLog(@"dispatch_barrier_async");
+        [NSThread sleepForTimeInterval:8];
+    });
+    
+    dispatch_async(queue, ^{
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"dispatch_async3");
+    });
+}
+
+-(void)exampleFive{
+    int count=10;
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_apply(count, queue, ^(size_t i) {
+        printf("%zu\n",i);
     });
 }
 
