@@ -76,7 +76,7 @@
     dispatch_group_t create_group_queue=dispatch_group_create();
     NSLog(@"%@",create_group_queue);
     
-    
+    //同步异步 串行并行 组合
     //[self ax];
     //[self ay];
     //[self bx];
@@ -94,7 +94,10 @@
     //[self threadDeadlock];
     
     //例子一
-    [self exampleOne];
+    //[self exampleOne];
+    
+    //通过信号量 来决定 能有几个异步任务 同时执行
+    [self exampleTwo];
 }
 
 //串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行 所以会卡线程
@@ -296,5 +299,40 @@
     });
 }
 
+
+-(void)exampleTwo{
+    //创建信号量  信号量的大小决定了 线程同时能开几个 如果信号量不够大 那么新线程就会被阻塞 等待老线程结束 才能继续执行
+    dispatch_semaphore_t semaphore= dispatch_semaphore_create(1);
+    
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        //为什么信号量要 -1 之后再+1 因为 如果我们想让3个线程同时执行 这时候有四个线程准备执行 那么我在执行任务的时候 显然信号量 -1 三个线程都-1 那么信号量=0 第四个线程准备创建的时候 发现信号量=0 所以不能创建 随后三个线程都执行到dispatch_semaphore_signal 信号量+1 这时候信号量恢复了3 又能重新创建三个线程  这样就能保证 有且仅有三个或者三个一下的线程同时运行
+        //在yykit 里他在创建单例的时候 使用了这种方式 作用等同于锁 为了只能有一个线程执行操作
+        
+        
+        //dispatch_semaphore_wait等待信号，当信号总量少于0的时候就会一直等待，否则就可以正常的执行，并让信号总量-1
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        NSLog(@"hyg 开始行动");
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"hyg 行动结束");
+        //是信号量 +1 当这个任务执行到这里的时候 信号量+1 新线程不被继续阻塞 所以位置二号那个线程 能继续执行
+        dispatch_semaphore_signal(semaphore);
+    });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        NSLog(@"未知一号 开始行动");
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"未知一号 行动结束");
+        dispatch_semaphore_signal(semaphore);
+    });
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        NSLog(@"未知二号 开始行动");
+        [NSThread sleepForTimeInterval:1];
+        NSLog(@"未知二号 行动结束");
+        dispatch_semaphore_signal(semaphore);
+    });
+}
 
 @end
