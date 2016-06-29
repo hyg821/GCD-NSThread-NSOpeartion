@@ -36,7 +36,7 @@
     //异步的本质 就是  执行 任务是否是 dispatch_async +block里的代码不是一起执行完 新开一个线程来执行block里的代码
     
     
-    //本质就是   队列(queue) --> 任务dispatch_sync//dispatch_sync
+    //本质就是   队列(queue) --> 任务dispatch_sync//dispatch_async
     
     //a->串行队列  x->同步任务
     //b->并行队列  y->异步任务
@@ -47,7 +47,7 @@
     dispatch_queue_t main_queue=dispatch_get_main_queue();
     NSLog(@"%@",main_queue);
     
-    //拿到全局队列 通过下边的参数来决定队列是串行 还是并行
+    //自定义队列 通过下边的参数来决定队列是串行 还是并行
     //DISPATCH_QUEUE_SERIAL 串行
     //DISPATCH_QUEUE_CONCURRENT 并行
     
@@ -65,6 +65,7 @@
     //DISPATCH_QUEUE_PRIORITY_LOW
     //DISPATCH_QUEUE_PRIORITY_BACKGROUND
     
+    //global_queue 默认就是一个并行队列
     dispatch_queue_t global_queue=dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE,0);
     NSLog(@"%@",global_queue);
     
@@ -93,20 +94,26 @@
     //线程死锁
     //[self threadDeadlock];
     
-    //例子一
+    //线程同步 异步的执行顺序
     //[self exampleOne];
     
     //通过信号量 来决定 能有几个异步任务 同时执行
     //[self exampleTwo];
     
     //线程延时
-    [self exampleThree];
+    //[self exampleThree];
     
     //dispatch_barrier_async 异步中的同步
     //[self exampleFour];
     
     //代替for操作
     //[self exampleFive];
+    
+    //dispatch_source timer GCD定时器
+    //[self exampleSix];
+    
+    //dispatch_source
+    [self exampleSeven];
 }
 
 //串行同步 一个一个执行 同步任务 下一个任务依赖于上一个任务执行完成 就在主线程执行 所以会卡线程
@@ -410,6 +417,26 @@ void fun1(){
     dispatch_apply(count, queue, ^(size_t i) {
         printf("%zu\n",i);
     });
+}
+
+-(void)exampleSix{
+    dispatch_source_t timer=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+    
+    dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 5ull*NSEC_PER_SEC), DISPATCH_TIME_FOREVER, 1ull*NSEC_PER_SEC);
+    
+    dispatch_source_set_event_handler(timer, ^{
+        NSLog(@"wakeup");
+        dispatch_source_cancel(timer);
+    });
+    
+    dispatch_source_set_cancel_handler(timer, ^{
+        NSLog(@"cancel");
+    });
+    //启动
+    dispatch_resume(timer);
+}
+
+-(void)exampleSeven{
 }
 
 @end
